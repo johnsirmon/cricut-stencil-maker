@@ -5,14 +5,12 @@
     <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>CricutStencilMaker</RootNamespace>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <UseWinUI>true</UseWinUI>
     <Platforms>x64;arm64</Platforms>
     <RuntimeIdentifiers>win10-x64;win10-arm64</RuntimeIdentifiers>
-    <PublishProfile>win10-$(Platform).pubxml</PublishProfile>
-    <UseWinUI>true</UseWinUI>
-    <EnableMsixTooling>true</EnableMsixTooling>
-    <PackageCertificateKeyFile>CricutStencilMaker_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <PublishAot>false</PublishAot>
+    <EnableMsixTooling>false</EnableMsixTooling>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,76 @@
+name: Build Windows Forms GUI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 0.9.0)'
+        required: true
+        default: '0.9.0'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 6.0.x
+        
+    - name: Restore dependencies (WinForms)
+      run: dotnet restore CricutStencilMaker.WinForms.csproj
+      
+    - name: Build WinForms application
+      run: dotnet build CricutStencilMaker.WinForms.csproj -c Release --no-restore
+      
+    - name: Publish Windows x64 GUI
+      run: dotnet publish CricutStencilMaker.WinForms.csproj -c Release --self-contained true -r win-x64 -o "publish/gui-win-x64"
+      
+    - name: Publish Windows ARM64 GUI
+      run: dotnet publish CricutStencilMaker.WinForms.csproj -c Release --self-contained true -r win-arm64 -o "publish/gui-win-arm64"
+      
+    - name: Create GUI packages
+      run: |
+        $version = "${{ github.event.inputs.version }}"
+        
+        # Create Windows x64 GUI package
+        Compress-Archive -Path "publish/gui-win-x64/*" -DestinationPath "CricutStencilMaker-v$version-GUI-win-x64.zip"
+        
+        # Create Windows ARM64 GUI package  
+        Compress-Archive -Path "publish/gui-win-arm64/*" -DestinationPath "CricutStencilMaker-v$version-GUI-win-arm64.zip"
+        
+        Write-Host "✅ GUI packages created successfully!" -ForegroundColor Green
+        Get-ChildItem "CricutStencilMaker-v$version-GUI-*.zip" | Select-Object Name, Length
+      shell: powershell
+      
+    - name: Upload Windows x64 GUI
+      uses: actions/upload-artifact@v4
+      with:
+        name: CricutStencilMaker-GUI-v${{ github.event.inputs.version }}-win-x64
+        path: CricutStencilMaker-v${{ github.event.inputs.version }}-GUI-win-x64.zip
+        
+    - name: Upload Windows ARM64 GUI
+      uses: actions/upload-artifact@v4
+      with:
+        name: CricutStencilMaker-GUI-v${{ github.event.inputs.version }}-win-arm64
+        path: CricutStencilMaker-v${{ github.event.inputs.version }}-GUI-win-arm64.zip
+        
+    - name: Show success message
+      run: |
+        Write-Host "🎉 Windows Forms GUI build completed successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "📦 Downloads available:" -ForegroundColor Cyan
+        Write-Host "   - GUI Windows x64: CricutStencilMaker-v${{ github.event.inputs.version }}-GUI-win-x64.zip"
+        Write-Host "   - GUI Windows ARM64: CricutStencilMaker-v${{ github.event.inputs.version }}-GUI-win-arm64.zip"
+        Write-Host ""
+        Write-Host "🎯 Features:" -ForegroundColor Yellow
+        Write-Host "   - Drag & drop interface"
+        Write-Host "   - Background removal option"
+        Write-Host "   - Mat size selection"
+        Write-Host "   - Design Space compatible SVG export"
+        Write-Host "   - No installation required - just extract and run!"
+      shell: powershell

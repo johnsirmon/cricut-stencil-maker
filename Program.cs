@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,6 +7,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SystemDrawing = System.Drawing;
 
 namespace CricutStencilMaker
 {
@@ -23,10 +24,10 @@ namespace CricutStencilMaker
         private void InitializeComponent()
         {
             this.Text = "Cricut Stencil Maker v0.9.0";
-            this.Size = new Size(800, 600);
+            this.Size = new SystemDrawing.Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.AllowDrop = true;
-            this.BackColor = Color.FromArgb(248, 249, 250);
+            this.BackColor = SystemDrawing.Color.FromArgb(248, 249, 250);
 
             // Main layout
             var mainPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20) };
@@ -35,40 +36,40 @@ namespace CricutStencilMaker
             var titleLabel = new Label
             {
                 Text = "🎨 Cricut Stencil Maker",
-                Font = new Font("Segoe UI", 24, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 180, 166),
-                Location = new Point(20, 20),
-                Size = new Size(600, 40),
-                TextAlign = ContentAlignment.MiddleLeft
+                Font = new SystemDrawing.Font("Segoe UI", 24, SystemDrawing.FontStyle.Bold),
+                ForeColor = SystemDrawing.Color.FromArgb(0, 180, 166),
+                Location = new SystemDrawing.Point(20, 20),
+                Size = new SystemDrawing.Size(600, 40),
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft
             };
 
             // Subtitle
             var subtitleLabel = new Label
             {
                 Text = "Drag & drop an image to create a Design Space compatible stencil",
-                Font = new Font("Segoe UI", 12),
-                ForeColor = Color.Gray,
-                Location = new Point(20, 70),
-                Size = new Size(600, 30),
-                TextAlign = ContentAlignment.MiddleLeft
+                Font = new SystemDrawing.Font("Segoe UI", 12),
+                ForeColor = SystemDrawing.Color.Gray,
+                Location = new SystemDrawing.Point(20, 70),
+                Size = new SystemDrawing.Size(600, 30),
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft
             };
 
             // Drop zone
             var dropZone = new Panel
             {
-                Location = new Point(20, 120),
-                Size = new Size(740, 200),
+                Location = new SystemDrawing.Point(20, 120),
+                Size = new SystemDrawing.Size(740, 200),
                 BorderStyle = BorderStyle.FixedSingle,
-                BackColor = Color.White,
+                BackColor = SystemDrawing.Color.White,
                 AllowDrop = true
             };
 
             var dropLabel = new Label
             {
                 Text = "Drop your image here or click to browse\n\nSupports: PNG, JPG, BMP, GIF",
-                Font = new Font("Segoe UI", 14),
-                ForeColor = Color.Gray,
-                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new SystemDrawing.Font("Segoe UI", 14),
+                ForeColor = SystemDrawing.Color.Gray,
+                TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
                 Dock = DockStyle.Fill,
                 Name = "DropLabel"
             };
@@ -82,16 +83,16 @@ namespace CricutStencilMaker
             var settingsPanel = new GroupBox
             {
                 Text = "Settings",
-                Location = new Point(20, 340),
-                Size = new Size(740, 100),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+                Location = new SystemDrawing.Point(20, 340),
+                Size = new SystemDrawing.Size(740, 100),
+                Font = new SystemDrawing.Font("Segoe UI", 10, SystemDrawing.FontStyle.Bold)
             };
 
             var removeBackgroundCheck = new CheckBox
             {
                 Text = "Remove background automatically",
-                Location = new Point(20, 30),
-                Size = new Size(250, 25),
+                Location = new SystemDrawing.Point(20, 30),
+                Size = new SystemDrawing.Size(250, 25),
                 Checked = true,
                 Name = "RemoveBackgroundCheck"
             };
@@ -99,15 +100,15 @@ namespace CricutStencilMaker
             var matSizeLabel = new Label
             {
                 Text = "Mat Size:",
-                Location = new Point(20, 60),
-                Size = new Size(80, 25),
-                TextAlign = ContentAlignment.MiddleLeft
+                Location = new SystemDrawing.Point(20, 60),
+                Size = new SystemDrawing.Size(80, 25),
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft
             };
 
             var matSizeCombo = new ComboBox
             {
-                Location = new Point(100, 57),
-                Size = new Size(200, 25),
+                Location = new SystemDrawing.Point(100, 57),
+                Size = new SystemDrawing.Size(200, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Name = "MatSizeCombo"
             };
@@ -117,12 +118,12 @@ namespace CricutStencilMaker
             var processButton = new Button
             {
                 Text = "Create Stencil SVG",
-                Location = new Point(400, 40),
-                Size = new Size(200, 40),
-                BackColor = Color.FromArgb(0, 180, 166),
-                ForeColor = Color.White,
+                Location = new SystemDrawing.Point(400, 40),
+                Size = new SystemDrawing.Size(200, 40),
+                BackColor = SystemDrawing.Color.FromArgb(0, 180, 166),
+                ForeColor = SystemDrawing.Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Font = new SystemDrawing.Font("Segoe UI", 12, SystemDrawing.FontStyle.Bold),
                 Enabled = false,
                 Name = "ProcessButton"
             };
@@ -134,15 +135,15 @@ namespace CricutStencilMaker
             var statusLabel = new Label
             {
                 Text = "Ready - Drop an image to begin",
-                Location = new Point(20, 460),
-                Size = new Size(600, 25),
+                Location = new SystemDrawing.Point(20, 460),
+                Size = new SystemDrawing.Size(600, 25),
                 Name = "StatusLabel"
             };
 
             var progressBar = new ProgressBar
             {
-                Location = new Point(20, 490),
-                Size = new Size(740, 20),
+                Location = new SystemDrawing.Point(20, 490),
+                Size = new SystemDrawing.Size(740, 20),
                 Visible = false,
                 Name = "ProgressBar"
             };
@@ -200,7 +201,7 @@ namespace CricutStencilMaker
 
                 var dropLabel = this.Controls.Find("DropLabel", true)[0] as Label;
                 dropLabel.Text = $"✅ {fileName} loaded\nReady to create stencil!";
-                dropLabel.ForeColor = Color.FromArgb(0, 180, 166);
+                dropLabel.ForeColor = SystemDrawing.Color.FromArgb(0, 180, 166);
             }
             catch (Exception ex)
             {
@@ -302,191 +303,105 @@ namespace CricutStencilMaker
 
         private string ProcessImageToSVGPaths(string imagePath, double matWidth, double matHeight)
         {
-            using var image = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(imagePath);
-            
+            using var image = SixLabors.ImageSharp.Image.Load<Rgba32>(imagePath);
+
             var paths = new System.Text.StringBuilder();
             var matWidthPx = (int)(matWidth * 96);
             var matHeightPx = (int)(matHeight * 96);
-            
+
             // Resize image to fit mat while maintaining aspect ratio
             var scale = Math.Min((double)matWidthPx / image.Width, (double)matHeightPx / image.Height);
             var newWidth = (int)(image.Width * scale);
             var newHeight = (int)(image.Height * scale);
-            
-            image.Mutate(x => x.Resize(newWidth, newHeight));
-            
+
+            image.Mutate(x => x.Resize(newWidth, newHeight).DetectEdges());
+
             // Center the image on the mat
             var offsetX = (matWidthPx - newWidth) / 2;
             var offsetY = (matHeightPx - newHeight) / 2;
-            
-            // Convert to black and white and trace contours
+
+            // Trace contours
             var contours = ExtractContours(image, offsetX, offsetY);
-            
+
             foreach (var contour in contours)
             {
                 if (contour.Count < 3) continue; // Skip tiny contours
-                
+
                 var pathData = "M" + string.Join(" L", contour.Select(p => $"{p.X},{p.Y}")) + " Z";
                 paths.AppendLine($"  <path d=\"{pathData}\" fill=\"black\" fill-rule=\"evenodd\"/>");
             }
-            
+
             return paths.ToString();
         }
 
-        private List<List<System.Drawing.Point>> ExtractContours(SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image, int offsetX, int offsetY)
+        private List<List<SystemDrawing.Point>> ExtractContours(SixLabors.ImageSharp.Image<Rgba32> image, int offsetX, int offsetY)
         {
-            var contours = new List<List<System.Drawing.Point>>();
+            var contours = new List<List<SystemDrawing.Point>>();
             var visited = new bool[image.Width, image.Height];
-            
-            // Simple contour extraction - find edges of non-transparent pixels
+
+            // Convert image to grayscale and apply binary thresholding
+            image.Mutate(x => x.Grayscale().BinaryThreshold(0.5f));
+
             for (int y = 1; y < image.Height - 1; y++)
             {
                 for (int x = 1; x < image.Width - 1; x++)
                 {
                     if (visited[x, y]) continue;
-                    
+
                     var pixel = image[x, y];
-                    
-                    // Check if this is a solid pixel (not transparent)
+
                     if (pixel.A > 128) // More than 50% opacity
                     {
-                        // Check if it's on an edge (has transparent neighbors)
-                        bool isEdge = false;
-                        for (int dy = -1; dy <= 1; dy++)
+                        var contour = TraceContour(image, x, y, visited, offsetX, offsetY);
+                        if (contour != null)
                         {
-                            for (int dx = -1; dx <= 1; dx++)
-                            {
-                                if (dx == 0 && dy == 0) continue;
-                                var neighbor = image[x + dx, y + dy];
-                                if (neighbor.A <= 128)
-                                {
-                                    isEdge = true;
-                                    break;
-                                }
-                            }
-                            if (isEdge) break;
-                        }
-                        
-                        if (isEdge)
-                        {
-                            // Trace contour from this edge pixel
-                            var contour = TraceContour(image, x, y, visited, offsetX, offsetY);
-                            if (contour.Count > 10) // Only keep substantial contours
-                            {
-                                contours.Add(contour);
-                            }
+                            contours.Add(contour);
                         }
                     }
                 }
             }
-            
+
             return contours;
         }
 
-        private List<System.Drawing.Point> TraceContour(SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image, int startX, int startY, bool[,] visited, int offsetX, int offsetY)
+        private List<SystemDrawing.Point> TraceContour(SixLabors.ImageSharp.Image<Rgba32> image, int startX, int startY, bool[,] visited, int offsetX, int offsetY)
         {
-            var contour = new List<System.Drawing.Point>();
-            var directions = new[] { (-1,-1), (-1,0), (-1,1), (0,1), (1,1), (1,0), (1,-1), (0,-1) };
-            
-            int x = startX, y = startY;
-            int dir = 0;
-            
-            do
+            var contour = new List<SystemDrawing.Point>();
+            var stack = new Stack<SystemDrawing.Point>();
+            stack.Push(new SystemDrawing.Point(startX, startY));
+
+            while (stack.Count > 0)
             {
-                if (!visited[x, y])
+                var point = stack.Pop();
+
+                if (visited[point.X, point.Y]) continue;
+
+                visited[point.X, point.Y] = true;
+                contour.Add(new SystemDrawing.Point(point.X - offsetX, point.Y - offsetY));
+
+                // 8-connectivity
+                for (int dy = -1; dy <= 1; dy++)
                 {
-                    visited[x, y] = true;
-                    contour.Add(new System.Drawing.Point(x + offsetX, y + offsetY));
-                }
-                
-                // Find next edge pixel
-                bool found = false;
-                for (int i = 0; i < 8; i++)
-                {
-                    int newDir = (dir + i) % 8;
-                    int nx = x + directions[newDir].Item1;
-                    int ny = y + directions[newDir].Item2;
-                    
-                    if (nx >= 0 && nx < image.Width && ny >= 0 && ny < image.Height)
+                    for (int dx = -1; dx <= 1; dx++)
                     {
-                        var pixel = image[nx, ny];
-                        if (pixel.A > 128)
+                        if (dx == 0 && dy == 0) continue;
+
+                        var nx = point.X + dx;
+                        var ny = point.Y + dy;
+
+                        if (nx >= 0 && ny >= 0 && nx < image.Width && ny < image.Height && !visited[nx, ny])
                         {
-                            x = nx;
-                            y = ny;
-                            dir = newDir;
-                            found = true;
-                            break;
+                            var neighbor = image[nx, ny];
+                            if (neighbor.A > 128) // More than 50% opacity
+                            {
+                                stack.Push(new SystemDrawing.Point(nx, ny));
+                            }
                         }
                     }
                 }
-                
-                if (!found || contour.Count > 1000) break; // Prevent infinite loops
-                
-            } while (x != startX || y != startY);
-            
-            return SimplifyContour(contour);
-        }
-
-        private List<System.Drawing.Point> SimplifyContour(List<System.Drawing.Point> contour)
-        {
-            if (contour.Count <= 3) return contour;
-            
-            // Simple Douglas-Peucker-like simplification
-            var simplified = new List<System.Drawing.Point> { contour[0] };
-            
-            for (int i = 1; i < contour.Count - 1; i++)
-            {
-                var prev = simplified[simplified.Count - 1];
-                var curr = contour[i];
-                var next = contour[i + 1];
-                
-                // Calculate if this point significantly changes direction
-                var dist = PointToLineDistance(curr, prev, next);
-                if (dist > 2.0) // Keep points that are more than 2 pixels from the line
-                {
-                    simplified.Add(curr);
-                }
-            }
-            
-            simplified.Add(contour[contour.Count - 1]);
-            return simplified;
-        }
-
-        private double PointToLineDistance(System.Drawing.Point point, System.Drawing.Point lineStart, System.Drawing.Point lineEnd)
-        {
-            double A = point.X - lineStart.X;
-            double B = point.Y - lineStart.Y;
-            double C = lineEnd.X - lineStart.X;
-            double D = lineEnd.Y - lineStart.Y;
-
-            double dot = A * C + B * D;
-            double lenSq = C * C + D * D;
-            
-            if (lenSq == 0) return Math.Sqrt(A * A + B * B);
-            
-            double param = dot / lenSq;
-            
-            double xx, yy;
-            if (param < 0)
-            {
-                xx = lineStart.X;
-                yy = lineStart.Y;
-            }
-            else if (param > 1)
-            {
-                xx = lineEnd.X;
-                yy = lineEnd.Y;
-            }
-            else
-            {
-                xx = lineStart.X + param * C;
-                yy = lineStart.Y + param * D;
             }
 
-            double dx = point.X - xx;
-            double dy = point.Y - yy;
-            return Math.Sqrt(dx * dx + dy * dy);
+            return contour;
         }
 
         private string GenerateFallbackSVG(double width, double height)
@@ -496,10 +411,20 @@ namespace CricutStencilMaker
      viewBox=""0 0 {width * 96} {height * 96}"" 
      width=""{width}in"" 
      height=""{height}in"">
-  <!-- Fallback SVG - processing failed -->
-  <text x=""50%"" y=""50%"" text-anchor=""middle"" fill=""black"" font-size=""24"">
-    Processing failed - please try a different image
+  <!-- Generated by Cricut Stencil Maker v0.9.0 -->
+  <!-- Design Space Compatible SVG -->
+  
+  <rect width=""100%"" height=""100%"" fill=""white""/>
+  <text x=""50%"" y=""50%"" 
+        font-family=""Segoe UI"" 
+        font-size=""24"" 
+        fill=""black"" 
+        text-anchor=""middle"" 
+        alignment-baseline=""middle""
+        dominant-baseline=""middle"">
+    Error processing image
   </text>
+  
 </svg>";
         }
     }

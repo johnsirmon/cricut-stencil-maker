@@ -13,21 +13,39 @@ A modern Windows application for creating Design Space-compatible SVG stencils f
 
 ## 📥 Installation
 
-### For End Users (Recommended)
+### 🚀 Super Easy One-Click Install (Recommended)
 
-**Easy One-Click Installation:**
+**The easiest way to install - perfect for non-technical users:**
+
+#### **Method 1: Web Installer (Completely Automatic)**
+1. **Visit our install page:** [🔗 Install Cricut Stencil Maker](https://johnsirmon.github.io/cricut-stencil-maker)
+2. **Click the big "Install Now" button**
+3. **That's it!** Everything downloads and installs automatically
+
+#### **Method 2: Direct PowerShell (One Command)**
+1. **Right-click Start Menu** → "Windows PowerShell (Admin)"
+2. **Copy and paste this command:**
+   ```powershell
+   iex (iwr -useb https://raw.githubusercontent.com/johnsirmon/cricut-stencil-maker/main/Web/install.ps1)
+   ```
+3. **Press Enter** and follow the prompts
+
+### For End Users (Manual Installation)
+
+**If you prefer the traditional way:**
 
 1. **Download the installer** from the [Releases page](https://github.com/johnsirmon/cricut-stencil-maker/releases)
 2. **Run `CricutStencilMaker-v0.9.0-Setup.msi`**
 3. **Follow the installation wizard** - just click "Next" through the steps
 4. **Launch from Start Menu** or Desktop shortcut
 
-The installer automatically:
+### What the installer does automatically:
+- ✅ Downloads and installs .NET 6 runtime if needed
 - ✅ Creates Start Menu and Desktop shortcuts
 - ✅ Associates image files with the application
 - ✅ Checks system requirements
 - ✅ Installs to user directory (no admin rights needed)
-- ✅ Sets up automatic updates
+- ✅ Shows helpful progress messages
 
 ### Alternative Installation Methods
 
@@ -148,8 +166,8 @@ Generated SVGs are optimized for Cricut Design Space:
 
 ### For First-Time Users
 
-1. **Install the application** using the MSI installer
-2. **Launch** from Start Menu or Desktop
+1. **Install using one-click installer** from our website
+2. **Launch** from Start Menu or Desktop shortcut
 3. **Drag an image** (PNG, JPEG, etc.) into the application window
 4. **Click "Auto Remove Background"** to remove the background
 5. **Choose your material preset:**

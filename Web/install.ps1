@@ -106,9 +106,9 @@ if (Test-Path $tempDir) {
 New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
 
 try {
-    # Download URLs (these would be updated when you create releases)
-    $installerUrl = "https://github.com/johnsirmon/cricut-stencil-maker/releases/download/v$Version/CricutStencilMaker-v$Version-Setup.msi"
-    $installerPath = Join-Path $tempDir "CricutStencilMaker-Setup.msi"
+    # Download URLs (updated for ZIP release)
+    $installerUrl = "https://github.com/johnsirmon/cricut-stencil-maker/releases/download/v$Version/CricutStencilMaker-v$Version.zip"
+    $installerPath = Join-Path $tempDir "CricutStencilMaker.zip"
 
     # Download with progress bar
     Write-Host "[1/3] 📦 Downloading Cricut Stencil Maker installer..." -ForegroundColor Yellow
@@ -162,37 +162,45 @@ try {
         }
     }
 
-    # Install the main application
+    # Extract the application
     Write-Host ""
     Write-Host "[3/3] 🎨 Installing Cricut Stencil Maker..." -ForegroundColor Yellow
-    Write-Host "       (The installer window will open - just click through it!)" -ForegroundColor Cyan
     
-    # Run MSI installer
-    $msiProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$installerPath`" /qb" -Wait -PassThru
+    # Choose installation directory
+    $installDir = Join-Path $env:LOCALAPPDATA "CricutStencilMaker"
     
-    if ($msiProcess.ExitCode -eq 0) {
-        Write-Host ""
-        Write-Host "🎉 SUCCESS! Cricut Stencil Maker is now installed!" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "🚀 How to get started:" -ForegroundColor Cyan
-        Write-Host "   1. Find 'Cricut Stencil Maker' in your Start Menu" -ForegroundColor White
-        Write-Host "   2. Or double-click the Desktop shortcut" -ForegroundColor White
-        Write-Host "   3. Drag any image into the app window" -ForegroundColor White
-        Write-Host "   4. Click 'Remove Background' and 'Export SVG'" -ForegroundColor White
-        Write-Host "   5. Import the SVG into Cricut Design Space!" -ForegroundColor White
-        Write-Host ""
-        Write-Host "📖 Need help? Visit: https://github.com/johnsirmon/cricut-stencil-maker" -ForegroundColor Cyan
-        
-        # Ask if they want to launch the app now
-        Write-Host ""
-        $launch = Read-Host "Would you like to launch Cricut Stencil Maker now? (Y/N)"
-        if ($launch.ToUpper() -eq "Y" -or $launch.ToUpper() -eq "YES") {
-            Start-Process "shell:AppsFolder\CricutStencilMaker_App"
-        }
-        
-    } else {
-        Write-Host "❌ Installation failed with error code: $($msiProcess.ExitCode)" -ForegroundColor Red
-        Write-Host "   Try running as administrator or contact support." -ForegroundColor Red
+    # Extract ZIP file
+    Expand-Archive -Path $installerPath -DestinationPath $installDir -Force
+    
+    # Create desktop shortcut
+    $desktopPath = [Environment]::GetFolderPath("Desktop")
+    $shortcutPath = Join-Path $desktopPath "Cricut Stencil Maker.lnk"
+    $exePath = Join-Path $installDir "CricutStencilMaker.exe"
+    
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $exePath
+    $shortcut.WorkingDirectory = $installDir
+    $shortcut.Description = "Cricut Stencil Maker - Create Design Space compatible stencils"
+    $shortcut.Save()
+    
+    Write-Host ""
+    Write-Host "🎉 SUCCESS! Cricut Stencil Maker is now installed!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "🚀 How to get started:" -ForegroundColor Cyan
+    Write-Host "   1. Double-click the Desktop shortcut 'Cricut Stencil Maker'" -ForegroundColor White
+    Write-Host "   2. Or run: $exePath" -ForegroundColor White
+    Write-Host "   3. Drag any image into the app window" -ForegroundColor White
+    Write-Host "   4. Click 'Create Stencil SVG'" -ForegroundColor White
+    Write-Host "   5. Import the SVG into Cricut Design Space!" -ForegroundColor White
+    Write-Host ""
+    Write-Host "📖 Need help? Visit: https://github.com/johnsirmon/cricut-stencil-maker" -ForegroundColor Cyan
+    
+    # Ask if they want to launch the app now
+    Write-Host ""
+    $launch = Read-Host "Would you like to launch Cricut Stencil Maker now? (Y/N)"
+    if ($launch.ToUpper() -eq "Y" -or $launch.ToUpper() -eq "YES") {
+        Start-Process $exePath
     }
 
 } catch {

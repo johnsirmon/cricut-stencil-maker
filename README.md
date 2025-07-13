@@ -11,33 +11,107 @@ A modern Windows application for creating Design Space-compatible SVG stencils f
 - **Design Space Compatible**: Exports clean SVG files with proper path limits
 - **Batch Processing**: Process multiple images at once
 
+## 📥 Installation
+
+### For End Users (Recommended)
+
+**Easy One-Click Installation:**
+
+1. **Download the installer** from the [Releases page](https://github.com/johnsirmon/cricut-stencil-maker/releases)
+2. **Run `CricutStencilMaker-v0.9.0-Setup.msi`**
+3. **Follow the installation wizard** - just click "Next" through the steps
+4. **Launch from Start Menu** or Desktop shortcut
+
+The installer automatically:
+- ✅ Creates Start Menu and Desktop shortcuts
+- ✅ Associates image files with the application
+- ✅ Checks system requirements
+- ✅ Installs to user directory (no admin rights needed)
+- ✅ Sets up automatic updates
+
+### Alternative Installation Methods
+
+**Microsoft Store** (Coming Soon)
+- Search for "Cricut Stencil Maker" in Microsoft Store
+- One-click install with automatic updates
+
+**Portable Version** (Advanced Users)
+- Download `CricutStencilMaker-Portable.zip` from releases
+- Extract to any folder and run `CricutStencilMaker.exe`
+- No installation required, runs from any location
+
 ## System Requirements
 
-- Windows 10 version 1809 (build 17763) or later
-- Windows 11 (recommended)
-- No additional runtime dependencies required
+### Minimum Requirements
+- **OS**: Windows 10 version 1809 (build 17763) or later
+- **Memory**: 4 GB RAM
+- **Storage**: 50 MB free space
+- **Graphics**: DirectX 11 compatible
 
-## Building the Application
+### Recommended Requirements
+- **OS**: Windows 11 (latest updates)
+- **Memory**: 8 GB RAM or more
+- **Storage**: 1 GB free space (for image processing cache)
+- **Graphics**: Dedicated GPU with DirectML support
+
+### Dependencies
+- **.NET 6 Runtime** - Automatically installed by the installer
+- **Visual C++ Redistributable** - Included in installer
+- **No additional software** required
+
+## 🛠️ Building the Application
+
+### For Developers
 
 This application is built using:
-- WinUI 3 for modern Windows UI
-- .NET 6 for cross-platform compatibility
-- C# for application logic
-- Win2D for graphics processing
+- **WinUI 3** for modern Windows UI
+- **.NET 6** for cross-platform compatibility
+- **C#** for application logic
+- **Win2D** for graphics processing
+- **WiX Toolset** for installer creation
 
 ### Prerequisites
 
-- Visual Studio 2022 with:
+**Required Software:**
+- **Visual Studio 2022** (Community or higher) with:
   - .NET 6.0 SDK
-  - Windows App SDK
-  - Windows 10/11 SDK
+  - Windows App SDK 1.4+
+  - Windows 10/11 SDK (latest)
+  - C++ CMake tools (for future C++ core integration)
 
-### Build Steps
+**For Installer Creation:**
+- **WiX Toolset v3.11+** - [Download here](https://github.com/wixtoolset/wix3/releases)
 
+### Building from Source
+
+**Quick Build (Application Only):**
+```bash
+git clone https://github.com/johnsirmon/cricut-stencil-maker.git
+cd cricut-stencil-maker
+dotnet restore
+dotnet build -c Release
+```
+
+**Full Build with Installer:**
+```bash
+# Option 1: Windows Batch Script
+Build\build-installer.bat
+
+# Option 2: PowerShell Script  
+Build\build-installer.ps1
+
+# Option 3: Manual Build
+dotnet publish -c Release --self-contained true -r win10-x64
+cd Installer
+candle.exe Product.wxs -ext WixUIExtension
+light.exe Product.wixobj -ext WixUIExtension -out "CricutStencilMaker-v0.9.0-Setup.msi"
+```
+
+**Visual Studio Build:**
 1. Open `CricutStencilMaker.csproj` in Visual Studio 2022
-2. Restore NuGet packages
-3. Build for your target platform (x64 or ARM64)
-4. Deploy using MSIX packaging
+2. Set platform to x64 or ARM64
+3. Build > Rebuild Solution
+4. For installer: Build the `Installer` project
 
 ## Architecture
 
@@ -70,6 +144,61 @@ Generated SVGs are optimized for Cricut Design Space:
 - Adjustable bridge width and spacing
 - Optimized for stencil stability
 
-## License
+## 🚀 Quick Start Guide
+
+### For First-Time Users
+
+1. **Install the application** using the MSI installer
+2. **Launch** from Start Menu or Desktop
+3. **Drag an image** (PNG, JPEG, etc.) into the application window
+4. **Click "Auto Remove Background"** to remove the background
+5. **Choose your material preset:**
+   - **Vinyl/HTV**: For easy weeding
+   - **Mylar**: For stencils with bridges
+6. **Adjust settings** if needed (optional)
+7. **Click "Export SVG"** to save your stencil
+8. **Import into Cricut Design Space** and cut!
+
+### Troubleshooting
+
+**Common Issues:**
+
+❓ **"Application won't start"**
+- Ensure Windows 10 build 17763 or later
+- Install latest Windows updates
+- Try running as administrator
+
+❓ **"Background removal not working well"**
+- Use manual brush tools to refine
+- Try different detail level settings
+- Ensure good contrast in source image
+
+❓ **"SVG won't import to Design Space"**
+- Check that paths are under 5000 limit
+- Verify file size is reasonable
+- Try re-exporting with lower detail level
+
+❓ **"Installation failed"**
+- Download fresh installer from releases
+- Temporarily disable antivirus
+- Try portable version instead
+
+**Support:**
+- 📖 Check the [Wiki](https://github.com/johnsirmon/cricut-stencil-maker/wiki) for detailed guides
+- 🐛 Report bugs in [Issues](https://github.com/johnsirmon/cricut-stencil-maker/issues)
+- 💬 Ask questions in [Discussions](https://github.com/johnsirmon/cricut-stencil-maker/discussions)
+
+## 📄 License
 
 This project follows the specifications in `prd.md` for a commercial Cricut stencil creation tool.
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Development Areas:**
+- C++ core integration for faster processing
+- Additional material presets
+- Advanced vectorization algorithms
+- UI/UX improvements
+- Documentation and tutorials

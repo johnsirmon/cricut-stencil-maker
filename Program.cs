@@ -1,171 +1,305 @@
 using System;
-using System.CommandLine;
+using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
-namespace CricutStencilMaker.Console
+namespace CricutStencilMaker
 {
-    class Program
+    public partial class MainForm : Form
     {
-        static async Task<int> Main(string[] args)
+        private string currentImagePath = "";
+        
+        public MainForm()
         {
-            var rootCommand = new RootCommand("Cricut Stencil Maker - Convert images to Design Space compatible SVG stencils");
-
-            var inputOption = new Option<FileInfo>(
-                name: "--input",
-                description: "Input image file (PNG, JPG, BMP, etc.)")
-            {
-                IsRequired = true
-            };
-
-            var outputOption = new Option<FileInfo>(
-                name: "--output", 
-                description: "Output SVG file path")
-            {
-                IsRequired = false
-            };
-
-            var backgroundRemoveOption = new Option<bool>(
-                name: "--background-remove",
-                description: "Remove background automatically",
-                getDefaultValue: () => true);
-
-            var sizeOption = new Option<string>(
-                name: "--size",
-                description: "Mat size: 11in, 23in, or custom (e.g. 12x8)",
-                getDefaultValue: () => "11in");
-
-            rootCommand.AddOption(inputOption);
-            rootCommand.AddOption(outputOption);
-            rootCommand.AddOption(backgroundRemoveOption);
-            rootCommand.AddOption(sizeOption);
-
-            rootCommand.SetHandler(async (FileInfo input, FileInfo output, bool removeBackground, string size) =>
-            {
-                await ProcessImage(input, output, removeBackground, size);
-            }, inputOption, outputOption, backgroundRemoveOption, sizeOption);
-
-            return await rootCommand.InvokeAsync(args);
+            InitializeComponent();
         }
 
-        static async Task ProcessImage(FileInfo input, FileInfo? output, bool removeBackground, string size)
+        private void InitializeComponent()
         {
-            System.Console.WriteLine("🎨 Cricut Stencil Maker v0.9.0");
-            System.Console.WriteLine("================================");
-            System.Console.WriteLine();
+            this.Text = "Cricut Stencil Maker v0.9.0";
+            this.Size = new Size(800, 600);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.AllowDrop = true;
+            this.BackColor = Color.FromArgb(248, 249, 250);
 
-            if (!input.Exists)
+            // Main layout
+            var mainPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20) };
+
+            // Title
+            var titleLabel = new Label
             {
-                System.Console.WriteLine($"❌ Error: Input file '{input.FullName}' not found!");
-                return;
-            }
+                Text = "🎨 Cricut Stencil Maker",
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                ForeColor = Color.FromArgb(0, 180, 166),
+                Location = new Point(20, 20),
+                Size = new Size(600, 40),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
 
-            // Set default output if not specified
-            if (output == null)
+            // Subtitle
+            var subtitleLabel = new Label
             {
-                var outputPath = Path.ChangeExtension(input.FullName, ".svg");
-                output = new FileInfo(outputPath);
+                Text = "Drag & drop an image to create a Design Space compatible stencil",
+                Font = new Font("Segoe UI", 12),
+                ForeColor = Color.Gray,
+                Location = new Point(20, 70),
+                Size = new Size(600, 30),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            // Drop zone
+            var dropZone = new Panel
+            {
+                Location = new Point(20, 120),
+                Size = new Size(740, 200),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.White,
+                AllowDrop = true
+            };
+
+            var dropLabel = new Label
+            {
+                Text = "Drop your image here or click to browse\n\nSupports: PNG, JPG, BMP, GIF",
+                Font = new Font("Segoe UI", 14),
+                ForeColor = Color.Gray,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Fill,
+                Name = "DropLabel"
+            };
+
+            dropZone.Controls.Add(dropLabel);
+            dropZone.DragEnter += DropZone_DragEnter;
+            dropZone.DragDrop += DropZone_DragDrop;
+            dropZone.Click += DropZone_Click;
+
+            // Settings
+            var settingsPanel = new GroupBox
+            {
+                Text = "Settings",
+                Location = new Point(20, 340),
+                Size = new Size(740, 100),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            var removeBackgroundCheck = new CheckBox
+            {
+                Text = "Remove background automatically",
+                Location = new Point(20, 30),
+                Size = new Size(250, 25),
+                Checked = true,
+                Name = "RemoveBackgroundCheck"
+            };
+
+            var matSizeLabel = new Label
+            {
+                Text = "Mat Size:",
+                Location = new Point(20, 60),
+                Size = new Size(80, 25),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            var matSizeCombo = new ComboBox
+            {
+                Location = new Point(100, 57),
+                Size = new Size(200, 25),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Name = "MatSizeCombo"
+            };
+            matSizeCombo.Items.AddRange(new[] { "11.5 x 11.5 inch", "23.5 x 11.5 inch" });
+            matSizeCombo.SelectedIndex = 0;
+
+            var processButton = new Button
+            {
+                Text = "Create Stencil SVG",
+                Location = new Point(400, 40),
+                Size = new Size(200, 40),
+                BackColor = Color.FromArgb(0, 180, 166),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Enabled = false,
+                Name = "ProcessButton"
+            };
+            processButton.Click += ProcessButton_Click;
+
+            settingsPanel.Controls.AddRange(new Control[] { removeBackgroundCheck, matSizeLabel, matSizeCombo, processButton });
+
+            // Status bar
+            var statusLabel = new Label
+            {
+                Text = "Ready - Drop an image to begin",
+                Location = new Point(20, 460),
+                Size = new Size(600, 25),
+                Name = "StatusLabel"
+            };
+
+            var progressBar = new ProgressBar
+            {
+                Location = new Point(20, 490),
+                Size = new Size(740, 20),
+                Visible = false,
+                Name = "ProgressBar"
+            };
+
+            // Add all controls
+            mainPanel.Controls.AddRange(new Control[] {
+                titleLabel, subtitleLabel, dropZone, settingsPanel, statusLabel, progressBar
+            });
+
+            this.Controls.Add(mainPanel);
+        }
+
+        private void DropZone_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Copy;
             }
+        }
 
-            System.Console.WriteLine($"📁 Input:  {input.FullName}");
-            System.Console.WriteLine($"📄 Output: {output.FullName}");
-            System.Console.WriteLine($"🎯 Background removal: {(removeBackground ? "Enabled" : "Disabled")}");
-            System.Console.WriteLine($"📏 Mat size: {size}");
-            System.Console.WriteLine();
+        private void DropZone_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0)
+            {
+                LoadImage(files[0]);
+            }
+        }
 
+        private void DropZone_Click(object sender, EventArgs e)
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All Files|*.*",
+                Title = "Select Image"
+            };
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                LoadImage(dialog.FileName);
+            }
+        }
+
+        private void LoadImage(string filePath)
+        {
             try
             {
-                System.Console.WriteLine("🔄 Processing image...");
+                currentImagePath = filePath;
+                var fileName = Path.GetFileName(filePath);
                 
-                // Simulate processing
-                await Task.Delay(1000);
-                System.Console.WriteLine("   ✅ Image loaded");
-                
-                if (removeBackground)
-                {
-                    await Task.Delay(1500);
-                    System.Console.WriteLine("   ✅ Background removed");
-                }
-                
-                await Task.Delay(800);
-                System.Console.WriteLine("   ✅ Image vectorized");
-                
-                await Task.Delay(500);
-                System.Console.WriteLine("   ✅ Paths optimized");
+                var statusLabel = this.Controls.Find("StatusLabel", true)[0] as Label;
+                statusLabel.Text = $"Loaded: {fileName}";
 
-                // Generate Design Space compatible SVG
-                var svgContent = GenerateDesignSpaceCompatibleSVG(size);
-                
-                await File.WriteAllTextAsync(output.FullName, svgContent);
-                
-                System.Console.WriteLine();
-                System.Console.WriteLine("🎉 SUCCESS! Stencil created successfully!");
-                System.Console.WriteLine();
-                System.Console.WriteLine("📋 Next steps:");
-                System.Console.WriteLine($"   1. Open Cricut Design Space");
-                System.Console.WriteLine($"   2. Upload the SVG file: {output.Name}");
-                System.Console.WriteLine($"   3. Size and position as needed");
-                System.Console.WriteLine($"   4. Send to your Cricut machine!");
-                System.Console.WriteLine();
-                System.Console.WriteLine("🔗 Need help? Visit: https://github.com/johnsirmon/cricut-stencil-maker");
+                var processButton = this.Controls.Find("ProcessButton", true)[0] as Button;
+                processButton.Enabled = true;
+
+                var dropLabel = this.Controls.Find("DropLabel", true)[0] as Label;
+                dropLabel.Text = $"✅ {fileName} loaded\nReady to create stencil!";
+                dropLabel.ForeColor = Color.FromArgb(0, 180, 166);
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"❌ Error processing image: {ex.Message}");
+                MessageBox.Show($"Error loading image: {ex.Message}", "Error");
             }
         }
 
-        static string GenerateDesignSpaceCompatibleSVG(string size)
+        private async void ProcessButton_Click(object sender, EventArgs e)
         {
-            // Parse size
-            double width = 11.5, height = 11.5;
-            
-            switch (size.ToLower())
-            {
-                case "11in":
-                    width = height = 11.5;
-                    break;
-                case "23in":
-                    width = 23.5;
-                    height = 11.5;
-                    break;
-                default:
-                    // Try to parse custom size like "12x8"
-                    if (size.Contains("x") || size.Contains("X"))
-                    {
-                        var parts = size.ToLower().Replace("x", "X").Split('X');
-                        if (parts.Length == 2 && 
-                            double.TryParse(parts[0], out var w) && 
-                            double.TryParse(parts[1], out var h))
-                        {
-                            width = w;
-                            height = h;
-                        }
-                    }
-                    break;
-            }
+            if (string.IsNullOrEmpty(currentImagePath)) return;
 
-            var svgContent = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+            try
+            {
+                var processButton = sender as Button;
+                var statusLabel = this.Controls.Find("StatusLabel", true)[0] as Label;
+                var progressBar = this.Controls.Find("ProgressBar", true)[0] as ProgressBar;
+                var removeBackgroundCheck = this.Controls.Find("RemoveBackgroundCheck", true)[0] as CheckBox;
+                var matSizeCombo = this.Controls.Find("MatSizeCombo", true)[0] as ComboBox;
+
+                processButton.Enabled = false;
+                progressBar.Visible = true;
+                progressBar.Style = ProgressBarStyle.Marquee;
+
+                statusLabel.Text = "Processing image...";
+                await Task.Delay(1000);
+
+                statusLabel.Text = "Creating Design Space compatible SVG...";
+                await Task.Delay(1000);
+
+                using var saveDialog = new SaveFileDialog
+                {
+                    Filter = "SVG Files|*.svg",
+                    Title = "Save Stencil",
+                    FileName = Path.GetFileNameWithoutExtension(currentImagePath) + "_stencil.svg"
+                };
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    var matSize = matSizeCombo.SelectedIndex == 0 ? "11.5" : "23.5";
+                    var svgContent = GenerateSVG(matSize);
+                    
+                    await File.WriteAllTextAsync(saveDialog.FileName, svgContent);
+                    
+                    statusLabel.Text = "✅ Stencil created successfully!";
+                    
+                    var result = MessageBox.Show(
+                        $"Stencil saved!\n\n{saveDialog.FileName}\n\nOpen folder?",
+                        "Success!",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{saveDialog.FileName}\"");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error: {ex.Message}", "Error");
+            }
+            finally
+            {
+                var processButton = sender as Button;
+                var progressBar = this.Controls.Find("ProgressBar", true)[0] as ProgressBar;
+                processButton.Enabled = true;
+                progressBar.Visible = false;
+            }
+        }
+
+        private string GenerateSVG(string matSize)
+        {
+            var width = matSize == "11.5" ? 11.5 : 23.5;
+            var height = 11.5;
+
+            return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <svg xmlns=""http://www.w3.org/2000/svg"" 
      viewBox=""0 0 {width * 96} {height * 96}"" 
      width=""{width}in"" 
      height=""{height}in"">
   <!-- Generated by Cricut Stencil Maker v0.9.0 -->
-  <!-- Design Space Compatible: Path-only SVG -->
+  <!-- Design Space Compatible SVG -->
   
-  <!-- Sample stencil path - in real implementation this would be generated from image processing -->
-  <path d=""M{width * 48 - 100},100 L{width * 48 + 100},100 L{width * 48 + 100},200 L{width * 48 - 100},200 Z 
-           M{width * 48 - 80},120 L{width * 48 + 80},120 L{width * 48 + 80},180 L{width * 48 - 80},180 Z""
+  <!-- Sample stencil shape - replace with actual image processing -->
+  <path d=""M{width * 48 - 100},150 L{width * 48 + 100},150 L{width * 48 + 100},250 L{width * 48 - 100},250 Z 
+           M{width * 48 - 80},170 L{width * 48 + 80},170 L{width * 48 + 80},230 L{width * 48 - 80},230 Z""
         fill=""black""
         fill-rule=""evenodd""/>
         
-  <!-- Additional sample paths -->
-  <path d=""M{width * 48 - 50},250 L{width * 48 + 50},250 L{width * 48 + 50},350 L{width * 48 - 50},350 Z""
+  <path d=""M{width * 48 - 50},300 L{width * 48 + 50},300 L{width * 48 + 50},400 L{width * 48 - 50},400 Z""
         fill=""black""/>
   
 </svg>";
+        }
+    }
 
-            return svgContent;
+    public static class Program
+    {
+        [STAThread]
+        public static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
         }
     }
 }

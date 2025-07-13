@@ -13,39 +13,15 @@ A modern Windows application for creating Design Space-compatible SVG stencils f
 
 ## 📥 Installation
 
-### 🚀 Super Easy One-Click Install (Recommended)
+### 🚀 Super Easy Installation
 
-**The easiest way to install - perfect for non-technical users:**
+**Simple 3-step process:**
 
-#### **Method 1: Web Installer (Completely Automatic)**
-1. **Visit our install page:** [🔗 Install Cricut Stencil Maker](https://johnsirmon.github.io/cricut-stencil-maker)
-2. **Click the big "Install Now" button**
-3. **That's it!** Everything downloads and installs automatically
+1. **Download** the latest `CricutStencilMaker-v0.9.0.zip` from [Releases](https://github.com/johnsirmon/cricut-stencil-maker/releases)
+2. **Extract** the ZIP file to any folder
+3. **Run** `CricutStencilMaker.exe` - that's it!
 
-#### **Method 2: Direct PowerShell (One Command)**
-1. **Right-click Start Menu** → "Windows PowerShell (Admin)"
-2. **Copy and paste this command:**
-   ```powershell
-   iex (iwr -useb https://raw.githubusercontent.com/johnsirmon/cricut-stencil-maker/main/Web/install.ps1)
-   ```
-3. **Press Enter** and follow the prompts
-
-### For End Users (Manual Installation)
-
-**If you prefer the traditional way:**
-
-1. **Download the installer** from the [Releases page](https://github.com/johnsirmon/cricut-stencil-maker/releases)
-2. **Run `CricutStencilMaker-v0.9.0-Setup.msi`**
-3. **Follow the installation wizard** - just click "Next" through the steps
-4. **Launch from Start Menu** or Desktop shortcut
-
-### What the installer does automatically:
-- ✅ Downloads and installs .NET 6 runtime if needed
-- ✅ Creates Start Menu and Desktop shortcuts
-- ✅ Associates image files with the application
-- ✅ Checks system requirements
-- ✅ Installs to user directory (no admin rights needed)
-- ✅ Shows helpful progress messages
+**No installation required!** Just extract and run.
 
 ### Alternative Installation Methods
 

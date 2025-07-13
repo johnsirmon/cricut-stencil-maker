@@ -1,0 +1,91 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 0.9.0)'
+        required: true
+        default: '0.9.0'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+        
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.3
+      
+    - name: Install WiX Toolset
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe" -OutFile "wix311.exe"
+        .\wix311.exe /S
+      shell: powershell
+      
+    - name: Restore dependencies
+      run: dotnet restore CricutStencilMaker.csproj
+      
+    - name: Build application
+      run: dotnet build CricutStencilMaker.csproj -c Release --no-restore
+      
+    - name: Publish application
+      run: dotnet publish CricutStencilMaker.csproj -c Release --self-contained true -r win10-x64 --no-build
+      
+    - name: Build installer
+      run: |
+        cd Installer
+        & "${env:WIX}bin\candle.exe" Product.wxs -ext WixUIExtension
+        & "${env:WIX}bin\light.exe" Product.wixobj -ext WixUIExtension -out "CricutStencilMaker-v${{ github.event.inputs.version || '0.9.0' }}-Setup.msi"
+      shell: powershell
+      
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          Installer/CricutStencilMaker-v*.msi
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        name: "Cricut Stencil Maker v${{ github.event.inputs.version || github.ref_name }}"
+        body: |
+          ## 🎨 Cricut Stencil Maker v${{ github.event.inputs.version || github.ref_name }}
+          
+          **One-Click Installation:**
+          1. Download `CricutStencilMaker-v${{ github.event.inputs.version || github.ref_name }}-Setup.msi`
+          2. Double-click to install
+          3. Launch from Start Menu or Desktop
+          
+          **Or use our web installer:** [Install Now](https://johnsirmon.github.io/cricut-stencil-maker)
+          
+          ### Features:
+          - 🖱️ Drag & drop image processing
+          - 🤖 AI background removal
+          - 🎯 Design Space compatible SVG export
+          - 🎨 Material presets for Vinyl/HTV and Mylar
+          - 🌉 Automatic bridge generation
+          
+          ### System Requirements:
+          - Windows 10 build 17763+ or Windows 11
+          - 4 GB RAM (8 GB recommended)
+          - 50 MB free disk space
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload Artifact (for manual workflow)
+      if: github.event_name == 'workflow_dispatch'
+      uses: actions/upload-artifact@v3
+      with:
+        name: CricutStencilMaker-Installer
+        path: Installer/CricutStencilMaker-v*.msi

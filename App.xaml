@@ -1,0 +1,39 @@
+<Application
+    x:Class="CricutStencilMaker.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Application-wide color scheme -->
+            <SolidColorBrush x:Key="PrimaryBrush" Color="#00B4A6"/>
+            <SolidColorBrush x:Key="SecondaryBrush" Color="#FF6B35"/>
+            <SolidColorBrush x:Key="AccentBrush" Color="#E94B3C"/>
+            <SolidColorBrush x:Key="BackgroundBrush" Color="#F8F9FA"/>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF"/>
+            
+            <!-- Button styles -->
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="16,8"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+            
+            <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="16,8"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

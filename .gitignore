@@ -1,0 +1,98 @@
+# Visual Studio / .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+[Bb]in/
+[Oo]bj/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio Code
+.vscode/
+
+# JetBrains Rider
+.idea/
+
+# NuGet
+packages/
+*.nupkg
+nuget.exe
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Application specific
+*.pfx
+*.cer
+AppPackages/
+BundleArtifacts/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE temp files
+*.swp
+*.swo
+*~
+
+# UWP/WinUI specific
+*.appx
+*.appxbundle
+*.appxupload
+
+# Windows App Certification Kit
+AppCertKitResults/
+
+# Azure DevOps
+.azure/
+
+# Local History for Visual Studio Code
+.history/
+
+# Package managers
+node_modules/
+bower_components/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

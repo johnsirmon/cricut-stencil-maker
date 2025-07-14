@@ -344,7 +344,6 @@ namespace CricutStencilMaker
             // Load the original image
             using var originalImage = SixLabors.ImageSharp.Image.Load<Rgba32>(imagePath);
             
-            var paths = new System.Text.StringBuilder();
             var matWidthPx = (int)(matWidth * 96);
             var matHeightPx = (int)(matHeight * 96);
             
@@ -369,92 +368,268 @@ namespace CricutStencilMaker
                 RemoveBackground(processedImage);
             }
             
-            // Apply enhanced pre-processing for better edge detection
-            processedImage.Mutate(x => x
-                .Grayscale()
-                .GaussianBlur(0.8f) // Slight blur to reduce noise
-                .BinaryThreshold(0.5f) // Binarize the image for clear edges
-            );
-            
             // Center the image on the mat
             var offsetX = (matWidthPx - newWidth) / 2;
             var offsetY = (matHeightPx - newHeight) / 2;
             
-            // Create a binary mask from the processed image for better contour detection
-            bool[,] mask = new bool[processedImage.Width, processedImage.Height];
-            for (int y = 0; y < processedImage.Height; y++)
+            // Generate multi-layer stencil for complete image representation
+            return GenerateMultiLayerStencil(processedImage, offsetX, offsetY, isMylarMode);
+        }
+        
+        private string GenerateMultiLayerStencil(SixLabors.ImageSharp.Image<Rgba32> image, int offsetX, int offsetY, bool isMylarMode)
+        {
+            var paths = new StringBuilder();
+            int totalPathCount = 0;
+            
+            // Define multi-layer thresholds for comprehensive stencil representation
+            // Each layer captures different detail levels for complete image coverage
+            var layers = new[]
             {
-                for (int x = 0; x < processedImage.Width; x++)
+                new { Name = "Bold Outlines", Threshold = 0.2f, Description = "Main shapes and bold features" },
+                new { Name = "Main Shapes", Threshold = 0.4f, Description = "Primary structural elements" },
+                new { Name = "Medium Details", Threshold = 0.6f, Description = "Secondary features and mid-tones" },
+                new { Name = "Fine Details", Threshold = 0.8f, Description = "Delicate features and highlights" }
+            };
+            
+            paths.AppendLine($"  <!-- Multi-Layer Stencil Generation -->");
+            paths.AppendLine($"  <!-- Total Layers: {layers.Length} for comprehensive coverage -->");
+            
+            var allLayerContours = new List<List<SystemDrawing.Point>>();
+            
+            // Process each layer with different threshold for multi-layer representation
+            foreach (var layer in layers)
+            {
+                if (totalPathCount >= 1000) break; // Reasonable limit for each layer
+                
+                paths.AppendLine($"  <!-- Layer: {layer.Name} (Threshold: {layer.Threshold}) - {layer.Description} -->");
+                
+                // Create layer-specific processed image
+                using var layerImage = image.Clone();
+                layerImage.Mutate(x => x
+                    .Grayscale()
+                    .GaussianBlur(layer.Threshold * 1.5f) // Adaptive blur based on detail level
+                    .BinaryThreshold(layer.Threshold)
+                );
+                
+                // Create binary mask for this layer
+                bool[,] mask = new bool[layerImage.Width, layerImage.Height];
+                for (int y = 0; y < layerImage.Height; y++)
                 {
-                    // True for black pixels (foreground)
-                    mask[x, y] = processedImage[x, y].R < 128;
+                    for (int x = 0; x < layerImage.Width; x++)
+                    {
+                        mask[x, y] = layerImage[x, y].R < 128;
+                    }
+                }
+                
+                // Detect contours for this layer
+                var layerContours = CreateSingleLayerContours(mask, offsetX, offsetY, layer.Threshold);
+                
+                // Filter out contours that are too similar to previous layers (prevent duplication)
+                var uniqueContours = FilterDuplicateContours(layerContours, allLayerContours, layer.Threshold);
+                allLayerContours.AddRange(uniqueContours);
+                
+                // Remove micro-islands based on material type and layer
+                double minAreaThreshold = isMylarMode ? (50 * layer.Threshold) : (10 * layer.Threshold);
+                uniqueContours = RemoveMicroIslands(uniqueContours, minAreaThreshold);
+                
+                // Generate SVG paths for this layer
+                foreach (var contour in uniqueContours)
+                {
+                    if (totalPathCount >= 5000) break; // PRD limit
+                    if (contour.Count < 5) continue;
+                    
+                    // Simplify contour based on layer detail level
+                    var simplificationTolerance = isMylarMode ? (0.5 * layer.Threshold) : (1.0 * layer.Threshold);
+                    var simplified = SimplifyContourEnhanced(contour, simplificationTolerance);
+                    
+                    if (simplified.Count < 3) continue;
+                    
+                    // Create SVG path
+                    var pathBuilder = new StringBuilder();
+                    pathBuilder.Append($"M{simplified[0].X},{simplified[0].Y}");
+                    
+                    for (int i = 1; i < simplified.Count; i++)
+                    {
+                        pathBuilder.Append($" L {simplified[i].X},{simplified[i].Y}");
+                    }
+                    pathBuilder.Append(" z");
+                    
+                    // Add path with layer information in comment
+                    paths.AppendLine($"  <path d=\"{pathBuilder}\" fill=\"black\" fill-rule=\"evenodd\"/><!-- {layer.Name} -->");
+                    totalPathCount++;
+                }
+                
+                paths.AppendLine($"  <!-- End {layer.Name}: {uniqueContours.Count} paths added -->");
+            }
+            
+            // Add bridges for Mylar mode if needed
+            if (isMylarMode && allLayerContours.Count > 0)
+            {
+                paths.AppendLine($"  <!-- Bridge Generation for Mylar Stencil Integrity -->");
+                var islands = IdentifyIslands(allLayerContours);
+                var bridgePaths = GenerateBridges(islands);
+                
+                foreach (var bridge in bridgePaths)
+                {
+                    if (totalPathCount >= 5000) break;
+                    paths.AppendLine($"  <path d=\"{bridge}\" fill=\"black\" stroke=\"black\" stroke-width=\"1\"/><!-- Bridge -->");
+                    totalPathCount++;
                 }
             }
             
-            // Enhanced contour detection
-            _contours = EnhancedContourDetection(mask, offsetX, offsetY);
-            
-            // Remove micro-islands based on material type
-            double minAreaThreshold = isMylarMode ? 50 : 10; // Larger threshold for mylar
-            _contours = RemoveMicroIslands(_contours, minAreaThreshold);
-            
-            // Deduplicate paths to prevent rendering bugs (PRD requirement)
-            _contours = DeduplicatePaths(_contours);
-            
-            // Find if any contours are inside other contours - these are "islands" that need bridges
-            var islands = IdentifyIslands(_contours);
-            
-            // Generate bridges between islands and their containing shapes (only for Mylar mode)
-            var bridgePaths = new List<string>();
-            if (isMylarMode)
-            {
-                bridgePaths = GenerateBridges(islands);
-            }
-            
-            // Generate SVG paths
-            int pathCount = 0;
-            
-            // First, add the main contours
-            foreach (var contour in _contours)
-            {
-                // Skip very small contours that aren't meaningful
-                if (contour.Count < 5) continue;
-                
-                // Simplify the contour with enhanced Douglas-Peucker algorithm
-                var simplified = SimplifyContourEnhanced(contour, isMylarMode ? 0.5 : 1.0);
-                
-                // Skip if simplification made it too small
-                if (simplified.Count < 3) continue;
-                
-                // Create the SVG path with better formatting
-                var pathBuilder = new StringBuilder();
-                pathBuilder.Append($"M{simplified[0].X},{simplified[0].Y}");
-                
-                for (int i = 1; i < simplified.Count; i++)
-                {
-                    pathBuilder.Append($" L {simplified[i].X},{simplified[i].Y}");
-                }
-                
-                // Close the path
-                pathBuilder.Append(" z");
-                
-                // Add path with appropriate fill (black for foreground)
-                paths.AppendLine($"  <path d=\"{pathBuilder}\" fill=\"black\" fill-rule=\"evenodd\"/>");
-                
-                pathCount++;
-                // Enforce the 5000 paths limit from PRD
-                if (pathCount >= 5000) break;
-            }
-            
-            // Add the bridge paths if we have space left (from PRD requirement)
-            foreach (var bridge in bridgePaths)
-            {
-                if (pathCount >= 5000) break;
-                paths.AppendLine($"  <path d=\"{bridge}\" fill=\"black\" stroke=\"black\" stroke-width=\"2\"/>");
-                pathCount++;
-            }
-            
+            paths.AppendLine($"  <!-- Multi-Layer Generation Complete: {totalPathCount} total paths -->");
             return paths.ToString();
+        }
+        
+        private List<List<SystemDrawing.Point>> CreateSingleLayerContours(bool[,] mask, int offsetX, int offsetY, float threshold)
+        {
+            var contours = new List<List<SystemDrawing.Point>>();
+            var width = mask.GetLength(0);
+            var height = mask.GetLength(1);
+            var visited = new bool[width, height];
+            
+            // Limit contours per layer based on threshold (more detailed layers get more contours)
+            int maxContoursPerLayer = (int)(50 / threshold); // Fine details get more paths
+            
+            for (int y = 0; y < height && contours.Count < maxContoursPerLayer; y++)
+            {
+                for (int x = 0; x < width && contours.Count < maxContoursPerLayer; x++)
+                {
+                    if (visited[x, y] || !mask[x, y]) continue;
+                    
+                    // Check if this is a boundary pixel
+                    if (IsBoundaryPixel(mask, x, y))
+                    {
+                        var contour = new List<SystemDrawing.Point>();
+                        TraceBoundarySimple(mask, visited, x, y, contour, offsetX, offsetY);
+                        
+                        if (contour.Count > 4) // Minimum viable contour size
+                        {
+                            contours.Add(contour);
+                        }
+                    }
+                }
+            }
+            
+            return contours;
+        }
+        
+        private bool IsBoundaryPixel(bool[,] mask, int x, int y)
+        {
+            var width = mask.GetLength(0);
+            var height = mask.GetLength(1);
+            
+            // Check 8-connected neighbors
+            int[] dx = { -1, -1, -1, 0, 0, 1, 1, 1 };
+            int[] dy = { -1, 0, 1, -1, 1, -1, 0, 1 };
+            
+            for (int k = 0; k < 8; k++)
+            {
+                int nx = x + dx[k];
+                int ny = y + dy[k];
+                
+                if (nx >= 0 && ny >= 0 && nx < width && ny < height && !mask[nx, ny])
+                {
+                    return true; // Found a background neighbor
+                }
+            }
+            return false;
+        }
+        
+        private void TraceBoundarySimple(bool[,] mask, bool[,] visited, int startX, int startY, 
+                                       List<SystemDrawing.Point> contour, int offsetX, int offsetY)
+        {
+            var width = mask.GetLength(0);
+            var height = mask.GetLength(1);
+            
+            // Simple boundary following to prevent infinite loops and duplication
+            var current = new SystemDrawing.Point(startX, startY);
+            var start = current;
+            
+            int maxPoints = 500; // Reasonable limit per contour
+            int pointCount = 0;
+            
+            do
+            {
+                if (pointCount++ > maxPoints) break;
+                
+                visited[current.X, current.Y] = true;
+                contour.Add(new SystemDrawing.Point(current.X + offsetX, current.Y + offsetY));
+                
+                // Find next boundary point using simple 8-connectivity
+                var next = FindNextBoundaryPoint(mask, current, width, height);
+                if (next.X == -1) break; // No next point found
+                
+                current = next;
+                
+            } while (!(current.X == start.X && current.Y == start.Y) && pointCount < maxPoints);
+        }
+        
+        private SystemDrawing.Point FindNextBoundaryPoint(bool[,] mask, SystemDrawing.Point current, int width, int height)
+        {
+            // 8-connected neighbors in clockwise order
+            int[] dx = { 1, 1, 0, -1, -1, -1, 0, 1 };
+            int[] dy = { 0, 1, 1, 1, 0, -1, -1, -1 };
+            
+            for (int i = 0; i < 8; i++)
+            {
+                int nx = current.X + dx[i];
+                int ny = current.Y + dy[i];
+                
+                if (nx >= 0 && ny >= 0 && nx < width && ny < height && 
+                    mask[nx, ny] && IsBoundaryPixel(mask, nx, ny))
+                {
+                    return new SystemDrawing.Point(nx, ny);
+                }
+            }
+            
+            return new SystemDrawing.Point(-1, -1); // No next point found
+        }
+        
+        private List<List<SystemDrawing.Point>> FilterDuplicateContours(
+            List<List<SystemDrawing.Point>> newContours, 
+            List<List<SystemDrawing.Point>> existingContours, 
+            float threshold)
+        {
+            var uniqueContours = new List<List<SystemDrawing.Point>>();
+            
+            foreach (var contour in newContours)
+            {
+                bool isDuplicate = false;
+                
+                // Check against existing contours with threshold-based tolerance
+                var tolerance = (int)(10 / threshold); // Finer thresholds allow closer contours
+                
+                foreach (var existing in existingContours)
+                {
+                    if (AreContoursNearDuplicate(contour, existing, tolerance))
+                    {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+                
+                if (!isDuplicate)
+                {
+                    uniqueContours.Add(contour);
+                }
+            }
+            
+            return uniqueContours;
+        }
+        
+        private bool AreContoursNearDuplicate(List<SystemDrawing.Point> contour1, List<SystemDrawing.Point> contour2, int tolerance)
+        {
+            if (Math.Abs(contour1.Count - contour2.Count) > Math.Max(contour1.Count, contour2.Count) * 0.3) 
+                return false;
+            
+            var bounds1 = GetBoundingBox(contour1);
+            var bounds2 = GetBoundingBox(contour2);
+            
+            return Math.Abs(bounds1.X - bounds2.X) < tolerance &&
+                   Math.Abs(bounds1.Y - bounds2.Y) < tolerance &&
+                   Math.Abs(bounds1.Width - bounds2.Width) < tolerance &&
+                   Math.Abs(bounds1.Height - bounds2.Height) < tolerance;
         }
         
         private void RemoveBackground(SixLabors.ImageSharp.Image<Rgba32> image)

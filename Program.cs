@@ -97,6 +97,24 @@ namespace CricutStencilMaker
                 Name = "RemoveBackgroundCheck"
             };
 
+            var materialLabel = new Label
+            {
+                Text = "Material:",
+                Location = new SystemDrawing.Point(280, 30),
+                Size = new SystemDrawing.Size(60, 25),
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+            };
+
+            var materialCombo = new ComboBox
+            {
+                Location = new SystemDrawing.Point(340, 27),
+                Size = new SystemDrawing.Size(120, 25),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Name = "MaterialCombo"
+            };
+            materialCombo.Items.AddRange(new[] { "Vinyl/HTV", "Mylar/Stencil" });
+            materialCombo.SelectedIndex = 0;
+
             var matSizeLabel = new Label
             {
                 Text = "Mat Size:",
@@ -129,7 +147,7 @@ namespace CricutStencilMaker
             };
             processButton.Click += ProcessButton_Click;
 
-            settingsPanel.Controls.AddRange(new Control[] { removeBackgroundCheck, matSizeLabel, matSizeCombo, processButton });
+            settingsPanel.Controls.AddRange(new Control[] { removeBackgroundCheck, materialLabel, materialCombo, matSizeLabel, matSizeCombo, processButton });
 
             // Status bar
             var statusLabel = new Label
@@ -338,6 +356,19 @@ namespace CricutStencilMaker
             // Create a resized copy for processing
             using var processedImage = originalImage.Clone(x => x.Resize(newWidth, newHeight));
             
+            // Get material settings
+            var materialCombo = this.Controls.Find("MaterialCombo", true)[0] as ComboBox;
+            var removeBackgroundCheck = this.Controls.Find("RemoveBackgroundCheck", true)[0] as CheckBox;
+            bool isMylarMode = materialCombo?.SelectedIndex == 1;
+            bool removeBackground = removeBackgroundCheck?.Checked ?? true;
+            
+            // Apply background removal if enabled
+            if (removeBackground)
+            {
+                processedImage.Mutate(x => x.AutoOrient());
+                RemoveBackground(processedImage);
+            }
+            
             // Apply enhanced pre-processing for better edge detection
             processedImage.Mutate(x => x
                 .Grayscale()
@@ -363,14 +394,22 @@ namespace CricutStencilMaker
             // Enhanced contour detection
             _contours = EnhancedContourDetection(mask, offsetX, offsetY);
             
-            // Remove micro-islands (contours that are too small) - PRD requirement
-            _contours = RemoveMicroIslands(_contours, 10); // 10 pixel minimum area
+            // Remove micro-islands based on material type
+            double minAreaThreshold = isMylarMode ? 50 : 10; // Larger threshold for mylar
+            _contours = RemoveMicroIslands(_contours, minAreaThreshold);
+            
+            // Deduplicate paths to prevent rendering bugs (PRD requirement)
+            _contours = DeduplicatePaths(_contours);
             
             // Find if any contours are inside other contours - these are "islands" that need bridges
             var islands = IdentifyIslands(_contours);
             
-            // Generate bridges between islands and their containing shapes
-            var bridgePaths = GenerateBridges(islands);
+            // Generate bridges between islands and their containing shapes (only for Mylar mode)
+            var bridgePaths = new List<string>();
+            if (isMylarMode)
+            {
+                bridgePaths = GenerateBridges(islands);
+            }
             
             // Generate SVG paths
             int pathCount = 0;
@@ -382,7 +421,7 @@ namespace CricutStencilMaker
                 if (contour.Count < 5) continue;
                 
                 // Simplify the contour with enhanced Douglas-Peucker algorithm
-                var simplified = SimplifyContourEnhanced(contour, 1.0);
+                var simplified = SimplifyContourEnhanced(contour, isMylarMode ? 0.5 : 1.0);
                 
                 // Skip if simplification made it too small
                 if (simplified.Count < 3) continue;
@@ -411,11 +450,105 @@ namespace CricutStencilMaker
             foreach (var bridge in bridgePaths)
             {
                 if (pathCount >= 5000) break;
-                paths.AppendLine($"  <path d=\"{bridge}\" fill=\"black\" stroke=\"black\" stroke-width=\"1\"/>");
+                paths.AppendLine($"  <path d=\"{bridge}\" fill=\"black\" stroke=\"black\" stroke-width=\"2\"/>");
                 pathCount++;
             }
             
             return paths.ToString();
+        }
+        
+        private void RemoveBackground(SixLabors.ImageSharp.Image<Rgba32> image)
+        {
+            // Simple background removal using edge-based segmentation
+            // This is a basic implementation - a full AI segmentation would be more complex
+            
+            // Apply edge detection to find the main subject
+            var edgeImage = image.Clone();
+            
+            // Enhance contrast to make subject more distinct
+            edgeImage.Mutate(x => x
+                .Contrast(1.2f)
+                .Brightness(1.1f)
+                .Saturate(1.1f)
+            );
+            
+            // Convert to grayscale for processing
+            using var grayImage = edgeImage.Clone(x => x.Grayscale());
+            
+            // Apply Gaussian blur followed by threshold to create a mask
+            grayImage.Mutate(x => x
+                .GaussianBlur(2.0f)
+                .BinaryThreshold(0.4f)
+            );
+            
+            // Use the mask to remove background from original image
+            for (int y = 0; y < image.Height; y++)
+            {
+                for (int x = 0; x < image.Width; x++)
+                {
+                    var maskPixel = grayImage[x, y];
+                    
+                    // If the mask pixel is black (background), make it transparent
+                    if (maskPixel.R < 128)
+                    {
+                        image[x, y] = new Rgba32(255, 255, 255, 255); // White background
+                    }
+                }
+            }
+        }
+        
+        private List<List<SystemDrawing.Point>> DeduplicatePaths(List<List<SystemDrawing.Point>> contours)
+        {
+            var result = new List<List<SystemDrawing.Point>>();
+            
+            foreach (var contour in contours)
+            {
+                bool isDuplicate = false;
+                
+                // Check if this contour is very similar to an existing one
+                foreach (var existing in result)
+                {
+                    if (AreContoursEquivalent(contour, existing))
+                    {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+                
+                if (!isDuplicate)
+                {
+                    result.Add(contour);
+                }
+            }
+            
+            return result;
+        }
+        
+        private bool AreContoursEquivalent(List<SystemDrawing.Point> contour1, List<SystemDrawing.Point> contour2)
+        {
+            // Simple check: if contours have very similar bounding boxes and similar number of points
+            if (Math.Abs(contour1.Count - contour2.Count) > contour1.Count * 0.2) return false;
+            
+            var bounds1 = GetBoundingBox(contour1);
+            var bounds2 = GetBoundingBox(contour2);
+            
+            // Check if bounding boxes are very similar (within 5 pixels)
+            return Math.Abs(bounds1.X - bounds2.X) < 5 &&
+                   Math.Abs(bounds1.Y - bounds2.Y) < 5 &&
+                   Math.Abs(bounds1.Width - bounds2.Width) < 5 &&
+                   Math.Abs(bounds1.Height - bounds2.Height) < 5;
+        }
+        
+        private SystemDrawing.Rectangle GetBoundingBox(List<SystemDrawing.Point> contour)
+        {
+            if (contour.Count == 0) return new SystemDrawing.Rectangle();
+            
+            int minX = contour.Min(p => p.X);
+            int maxX = contour.Max(p => p.X);
+            int minY = contour.Min(p => p.Y);
+            int maxY = contour.Max(p => p.Y);
+            
+            return new SystemDrawing.Rectangle(minX, minY, maxX - minX, maxY - minY);
         }
         
         private List<List<SystemDrawing.Point>> RemoveMicroIslands(List<List<SystemDrawing.Point>> contours, double minAreaThreshold)
@@ -559,15 +692,17 @@ namespace CricutStencilMaker
                     }
                     
                     // Find the closest points between the island and its container
-                    var islandPoint = FindClosestPointToContour(islandIndex, containerIndex);
-                    var containerPoint = FindClosestPointToPoint(containerIndex, islandPoint);
+                    var closestPoints = FindClosestPointsBetweenContours(islandIndex, containerIndex);
                     
-                    // Create a bridge path (a simple line with width)
-                    var bridgePath = $"M{islandPoint.X},{islandPoint.Y} L{containerPoint.X},{containerPoint.Y}";
-                    bridges.Add(bridgePath);
-                    
-                    bridgeCount++;
-                    if (bridgeCount >= maxBridges) break;
+                    if (closestPoints.Item1.X != 0 || closestPoints.Item1.Y != 0)
+                    {
+                        // Create a bridge path with proper width for mylar cutting
+                        var bridgePath = CreateBridgePath(closestPoints.Item1, closestPoints.Item2);
+                        bridges.Add(bridgePath);
+                        
+                        bridgeCount++;
+                        if (bridgeCount >= maxBridges) break;
+                    }
                 }
                 catch (Exception)
                 {
@@ -577,6 +712,58 @@ namespace CricutStencilMaker
             }
             
             return bridges;
+        }
+        
+        private (SystemDrawing.Point, SystemDrawing.Point) FindClosestPointsBetweenContours(int contourIndex1, int contourIndex2)
+        {
+            var contour1 = _contours[contourIndex1];
+            var contour2 = _contours[contourIndex2];
+            
+            SystemDrawing.Point closestPoint1 = contour1[0];
+            SystemDrawing.Point closestPoint2 = contour2[0];
+            double minDistance = double.MaxValue;
+            
+            // For each point in contour1, find the closest point in contour2
+            foreach (var p1 in contour1)
+            {
+                foreach (var p2 in contour2)
+                {
+                    double distance = Distance(p1, p2);
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        closestPoint1 = p1;
+                        closestPoint2 = p2;
+                    }
+                }
+            }
+            
+            return (closestPoint1, closestPoint2);
+        }
+        
+        private string CreateBridgePath(SystemDrawing.Point point1, SystemDrawing.Point point2)
+        {
+            // Create a bridge with width for better cutting on mylar
+            double bridgeWidth = 2.0; // 2 pixels wide
+            
+            // Calculate perpendicular direction for bridge width
+            double dx = point2.X - point1.X;
+            double dy = point2.Y - point1.Y;
+            double length = Math.Sqrt(dx * dx + dy * dy);
+            
+            if (length == 0) return $"M{point1.X},{point1.Y} L{point2.X},{point2.Y}";
+            
+            // Normalize and get perpendicular
+            double perpX = -dy / length * bridgeWidth / 2;
+            double perpY = dx / length * bridgeWidth / 2;
+            
+            // Create rectangle bridge
+            var p1 = new SystemDrawing.Point((int)(point1.X + perpX), (int)(point1.Y + perpY));
+            var p2 = new SystemDrawing.Point((int)(point1.X - perpX), (int)(point1.Y - perpY));
+            var p3 = new SystemDrawing.Point((int)(point2.X - perpX), (int)(point2.Y - perpY));
+            var p4 = new SystemDrawing.Point((int)(point2.X + perpX), (int)(point2.Y + perpY));
+            
+            return $"M{p1.X},{p1.Y} L{p2.X},{p2.Y} L{p3.X},{p3.Y} L{p4.X},{p4.Y} z";
         }
         
         private SystemDrawing.Point FindClosestPointToContour(int contourIndex1, int contourIndex2)

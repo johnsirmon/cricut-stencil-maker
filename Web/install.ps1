@@ -157,7 +157,7 @@ try {
         # Re-check installation
         try {
             $dotnetRuntimes = & dotnet --list-runtimes 2>$null
-            $hasDesktopRuntime = $dotnetRuntimes -match "Microsoft\\.WindowsDesktop\\.App 8\\."
+            $hasDesktopRuntime = $dotnetRuntimes -match 'Microsoft\.WindowsDesktop\.App 8\.'
 
             if ($dotnetInstallExitCode -eq 0 -and $hasDesktopRuntime) {
                 $dotnetVersion = & dotnet --version 2>$null

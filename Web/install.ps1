@@ -152,15 +152,19 @@ try {
 
         Write-Host "🔧 Installing .NET 8 Desktop Runtime..." -ForegroundColor Yellow
         & $dotnetInstallScript -Runtime windowsdesktop -Channel 8.0 -Verbose:$false
+        $dotnetInstallExitCode = $LASTEXITCODE
 
         # Re-check installation
         try {
-            $dotnetVersion = & dotnet --version 2>$null
-            if ($dotnetVersion -and $dotnetVersion.StartsWith("8.")) {
+            $dotnetRuntimes = & dotnet --list-runtimes 2>$null
+            $hasDesktopRuntime = $dotnetRuntimes -match "Microsoft\\.WindowsDesktop\\.App 8\\."
+
+            if ($dotnetInstallExitCode -eq 0 -and $hasDesktopRuntime) {
+                $dotnetVersion = & dotnet --version 2>$null
                 Write-Host "✅ .NET 8 Desktop Runtime installed successfully ($dotnetVersion)" -ForegroundColor Green
                 $dotnetInstalled = $true
             } else {
-                Write-Host "⚠️  .NET installation may have issues, but continuing..." -ForegroundColor Yellow
+                Write-Host "⚠️  .NET installation may have issues (exit code $dotnetInstallExitCode). Please verify .NET 8 Desktop Runtime is installed." -ForegroundColor Yellow
             }
         } catch {
             Write-Host "⚠️  .NET installation may have issues, but continuing..." -ForegroundColor Yellow

@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Cricut Stencil Maker! This docume
 
 ### Prerequisites
 - Windows 10/11 development environment
-- Visual Studio 2022 with .NET 6.0 SDK
+- Visual Studio 2022 with .NET 8.0 SDK (Windows Desktop)
 - Git for version control
 - WiX Toolset (for installer development)
 
@@ -59,7 +59,7 @@ Thank you for your interest in contributing to Cricut Stencil Maker! This docume
 - Follow C# coding conventions
 - Use meaningful variable and method names
 - Add XML documentation for public APIs
-- Maintain MVVM pattern for UI components
+- Keep WinForms event handlers small and move processing helpers into private methods
 
 ### 3. Testing
 - Test your changes thoroughly
@@ -78,19 +78,16 @@ Thank you for your interest in contributing to Cricut Stencil Maker! This docume
 ### Project Structure
 ```
 CricutStencilMaker/
-├── Models/              # Data models and business logic
-├── ViewModels/          # MVVM view models
-├── Views/               # XAML UI files
-├── Services/            # Image processing and file operations
-├── Installer/           # WiX installer project
-└── Build/              # Build scripts and tools
+├── Program.cs           # WinForms UI and image processing helpers
+├── Web/                 # Web installer landing page and scripts
+├── inputImages/         # Sample input assets
+└── outputImages/        # Sample output assets
 ```
 
 ### Key Components
-- **MainWindow** - Primary application interface
-- **ImageProcessor** - Core image processing logic
-- **MaterialPresets** - Vinyl/Mylar optimization settings
-- **SVGExporter** - Design Space compatible export
+- **MainForm** - Primary application interface and event wiring
+- **Image processing helpers** - Path generation, bridge creation, and background removal
+- **Web assets** - Landing page and installer scripts for distribution
 
 ## 🎯 Coding Guidelines
 

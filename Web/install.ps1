@@ -130,15 +130,15 @@ try {
     $fileSize = [math]::Round((Get-Item $installerPath).Length / 1MB, 2)
     Write-Host "✅ Download complete! ($fileSize MB)" -ForegroundColor Green
 
-    # Check if .NET 6 is installed
+    # Check if .NET 8 desktop runtime is installed
     Write-Host ""
-    Write-Host "[2/3] 🔧 Checking .NET 6 Runtime..." -ForegroundColor Yellow
+    Write-Host "[2/3] 🔧 Checking .NET 8 Desktop Runtime..." -ForegroundColor Yellow
     
     $dotnetInstalled = $false
     try {
         $dotnetVersion = & dotnet --version 2>$null
-        if ($dotnetVersion -and $dotnetVersion.StartsWith("6.")) {
-            Write-Host "✅ .NET 6 is already installed ($dotnetVersion)" -ForegroundColor Green
+        if ($dotnetVersion -and $dotnetVersion.StartsWith("8.")) {
+            Write-Host "✅ .NET 8 is already installed ($dotnetVersion)" -ForegroundColor Green
             $dotnetInstalled = $true
         }
     } catch {
@@ -146,18 +146,23 @@ try {
     }
     
     if (-not $dotnetInstalled) {
-        Write-Host "📥 Downloading .NET 6 Runtime..." -ForegroundColor Yellow
-        $dotnetUrl = "https://download.microsoft.com/download/1/7/2/172989dc-7c15-4c88-bd7f-be2d67b76adf/windowsdesktop-runtime-6.0.25-win-x64.exe"
-        $dotnetPath = Join-Path $tempDir "dotnet-runtime.exe"
-        
-        Invoke-WebRequest -Uri $dotnetUrl -OutFile $dotnetPath -UseBasicParsing
-        
-        Write-Host "🔧 Installing .NET 6 Runtime..." -ForegroundColor Yellow
-        $dotnetProcess = Start-Process -FilePath $dotnetPath -ArgumentList "/quiet" -Wait -PassThru
-        
-        if ($dotnetProcess.ExitCode -eq 0) {
-            Write-Host "✅ .NET 6 Runtime installed successfully" -ForegroundColor Green
-        } else {
+        Write-Host "📥 Downloading .NET 8 Desktop Runtime..." -ForegroundColor Yellow
+        $dotnetInstallScript = Join-Path $tempDir "dotnet-install.ps1"
+        Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile $dotnetInstallScript -UseBasicParsing
+
+        Write-Host "🔧 Installing .NET 8 Desktop Runtime..." -ForegroundColor Yellow
+        & $dotnetInstallScript -Runtime windowsdesktop -Channel 8.0 -Verbose:$false
+
+        # Re-check installation
+        try {
+            $dotnetVersion = & dotnet --version 2>$null
+            if ($dotnetVersion -and $dotnetVersion.StartsWith("8.")) {
+                Write-Host "✅ .NET 8 Desktop Runtime installed successfully ($dotnetVersion)" -ForegroundColor Green
+                $dotnetInstalled = $true
+            } else {
+                Write-Host "⚠️  .NET installation may have issues, but continuing..." -ForegroundColor Yellow
+            }
+        } catch {
             Write-Host "⚠️  .NET installation may have issues, but continuing..." -ForegroundColor Yellow
         }
     }

@@ -49,7 +49,7 @@ A modern Windows application for creating Design Space-compatible SVG stencils f
 - **Graphics**: Dedicated GPU with DirectML support
 
 ### Dependencies
-- **.NET 6 Runtime** - Automatically installed by the installer
+- **.NET 8 Desktop Runtime** - Automatically installed by the installer
 - **Visual C++ Redistributable** - Included in installer
 - **No additional software** required
 
@@ -58,18 +58,16 @@ A modern Windows application for creating Design Space-compatible SVG stencils f
 ### For Developers
 
 This application is built using:
-- **WinUI 3** for modern Windows UI
-- **.NET 6** for cross-platform compatibility
+- **Windows Forms** on **.NET 8** for the desktop experience
 - **C#** for application logic
-- **Win2D** for graphics processing
+- **SixLabors.ImageSharp** for image processing
 - **WiX Toolset** for installer creation
 
 ### Prerequisites
 
 **Required Software:**
 - **Visual Studio 2022** (Community or higher) with:
-  - .NET 6.0 SDK
-  - Windows App SDK 1.4+
+  - .NET 8.0 SDK with Windows Desktop targeting pack
   - Windows 10/11 SDK (latest)
   - C++ CMake tools (for future C++ core integration)
 
@@ -85,6 +83,7 @@ cd cricut-stencil-maker
 dotnet restore
 dotnet build -c Release
 ```
+> Building on non-Windows agents is supported via the `EnableWindowsTargeting` property in the project file; prefer Windows for running the app.
 
 **Full Build with Installer:**
 ```bash

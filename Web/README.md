@@ -17,7 +17,7 @@ This folder contains the one-click installation system for Cricut Stencil Maker.
 - **Purpose**: Fully automated installation script
 - **Features**:
   - System requirements check
-  - Automatic .NET 6 runtime download/install
+  - Automatic .NET 8 desktop runtime download/install
   - Downloads and installs main application
   - Progress indicators and user feedback
   - Professional ASCII art interface
@@ -47,7 +47,7 @@ This folder contains the one-click installation system for Cricut Stencil Maker.
 2. JavaScript downloads `install.ps1` when button is clicked
 3. `install.ps1` handles the complete installation:
    - System compatibility checks
-   - Downloads .NET 6 runtime if needed
+   - Downloads .NET 8 desktop runtime if needed
    - Downloads the MSI installer from GitHub releases
    - Runs the installer with progress feedback
    - Provides success/error messaging
